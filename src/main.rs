@@ -72,6 +72,14 @@ fn poll_in(input: &impl AsRawFd) -> bool {
     pollfd.revents & libc::POLLIN != 0
 }
 
+fn read_in(input: &impl AsRawFd, buf: &mut [u8]) -> Result<usize, &'static str> {
+    let fd = input.as_raw_fd();
+    let ret = unsafe {
+        libc::read(fd, buf.as_mut_ptr() as *mut _, buf.len())
+    };
+    ret.try_into().map_err(|_| "Failed to read")
+}
+
 fn main() {
     let sample_spec = pulse::sample::Spec {
         format: pulse::sample::Format::S16le,
@@ -90,37 +98,18 @@ fn main() {
         None,
     ).expect("Failed to connect to pulseaudio.");
 
-    // let mut data = vec![0i16; 44100];
-    // for (i, w) in data.iter_mut().enumerate() {
-    //     // *b = ((((i as f64 / 4410.0) * 440.0 / std::f64::consts::PI).sin() * 12800.0) as u16);
-    //     let wav = (2.0 * std::f64::consts::PI * SAMPLE_DT * (i as f64) * 440.0).sin();
-    //     *w = (wav * 32767.0) as i16;
-    // }
-    // println!("a");
-    // s.write(bytemuck::cast_slice(&data)).expect("Failed to write audio data");
-    // println!("b");
-    // s.write(bytemuck::cast_slice(&data)).expect("Failed to write audio data");
-    // println!("c");
-
     let mut notes = [<[Note; NOTE_COUNT]>::default(); CHANNEL_COUNT];
 
-    // let poller = polling::Poller::new().expect("Failed to create poller.");
     let mut stdin = std::io::stdin();
-    // let mut stdin = stdin.lock(); // StdinLock impls BufRead, is that a problem?
-    // let interest = Event::readable(0);
-    // poller.add(&stdin, interest).expect("Failed to add stdin to poller.");
 
     let mut buf = vec![0i16; BUFSIZE];
 
-    // let mut events = Vec::with_capacity(1);
     let mut running = true;
     'main_loop: while running {
-        let mut read_start = std::time::Instant::now();
+        let read_start = std::time::Instant::now();
         'read_loop: while running && poll_in(&stdin) {
-            // poller.modify(&stdin, interest).expect("Failed to add stdin to poller.");
-            // events.clear();
             let mut buf = [0u8; 3];
-            let bytes_read = stdin.read(&mut buf[..1]).expect("Failed to read");
+            let bytes_read = read_in(&stdin, &mut buf[..1]).expect("Failed to read");
             if bytes_read == 0 {
                 // EOF
                 running = false;
@@ -129,7 +118,7 @@ fn main() {
             match buf[0] {
                 0x80..=0x8f | 0x90..=0x9f => {
                     // Note-off or Note-on 
-                    let bytes_read = stdin.read(&mut buf[1..3]).expect("Failed to read");
+                    let bytes_read = read_in(&stdin, &mut buf[1..3]).expect("Failed to read");
                     if bytes_read != 2 {
                         // EOF
                         running = false;
@@ -153,15 +142,9 @@ fn main() {
                             break;
                         }
                     }
-                    // dbg!("AAA");
                 }
                 b => {dbg!(b);},
             };
-        }
-        let read_end = std::time::Instant::now();
-        let read_took = read_end - read_start;
-        if read_took > Duration::from_secs_f64(BUFSIZE as f64 * 2.0 * SAMPLE_DT) {
-            println!("Reading took too long! {read_took:?}");
         }
         
         let mut ampsum = 0;
@@ -197,23 +180,11 @@ fn main() {
                 wav
             } as i16;
         }
-        let end = std::time::Instant::now();
-        let took = end - start;
-        if took > Duration::from_secs_f64(BUFSIZE as f64 * 2.0 * SAMPLE_DT) {
-            println!("Generating took too long! {took:?}");
-        }
 
         // write data to pulse
-        let start = std::time::Instant::now();
         s.write(bytemuck::cast_slice(&buf)).expect("Failed to write audio data");
-        // println!("written!");
-        // println!("{:?}", &buf[..100]);
+        
         let end = std::time::Instant::now();
-        let took = end - start;
-        if took > Duration::from_secs_f64(BUFSIZE as f64 * 2.0 * SAMPLE_DT) {
-            // println!("Writing took too long! {took:?}");
-        }
-
         let took = end - read_start;
         let expected = Duration::from_secs_f64(BUFSIZE as f64 * 2.0 * SAMPLE_DT);
         if took > expected {
