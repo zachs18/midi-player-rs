@@ -81,6 +81,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "midi-rs"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "cc",
+ "libc",
+ "libpulse-binding",
+ "libpulse-simple-binding",
+]
+
+[[package]]
 name = "num-derive"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -122,17 +133,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1feb54ed693b93a84e14094943b84b7c4eae204c512b7ccb95ab0c66d278ad1"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "sound"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "cc",
- "libc",
- "libpulse-binding",
- "libpulse-simple-binding",
 ]
 
 [[package]]
