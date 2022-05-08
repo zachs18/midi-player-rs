@@ -1,0 +1,27 @@
+[package]
+name = "player"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[profile.dev]
+opt-level = 3
+overflow-checks = true
+
+[build-dependencies]
+cc = "1.0"
+
+
+[dependencies.pulse]
+version = "2.0"
+package = "libpulse-binding"
+
+[dependencies.psimple]
+version = "2.0"
+package = "libpulse-simple-binding"
+
+[dependencies.bytemuck]
+version = "1.9"
+
+[dependencies.libc]
+version = "0.2"

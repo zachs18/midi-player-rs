@@ -1,0 +1,17 @@
+[package]
+name = "parser"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "parser"
+path = "src/main.rs"
+
+[dependencies]
+midly = "0.5"
+futures-core = "0.3"
+tokio = { version = "1.18", features = ["full"] }
+tokio-stream = "*"
